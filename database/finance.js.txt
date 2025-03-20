@@ -1,0 +1,18 @@
+const sqlite3 = require('sqlite3').verbose();
+const db = new sqlite3.Database('./db/wiulyfe.db');
+
+const Finance = {
+    create: (userId, category, amount, date, type, description, callback) => {
+        db.run(
+            `INSERT INTO finances (userId, category, amount, date, type, description) 
+             VALUES (?, ?, ?, ?, ?, ?)`,
+            [userId, category, amount, date, type, description],
+            callback
+        );
+    },
+    getByUserId: (userId, callback) => {
+        db.all(`SELECT * FROM finances WHERE userId = ?`, [userId], callback);
+    }
+};
+
+module.exports = Finance;

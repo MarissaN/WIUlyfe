@@ -1,0 +1,7 @@
+Database setup
+PORT=5000
+DB_PATH=./db/wiulyfe.db
+JWT_SECRET=jwt_wiulyfe
+
+
+

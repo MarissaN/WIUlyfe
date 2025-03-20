@@ -1,0 +1,20 @@
+const sqlite3 = require('sqlite3').verbose();
+const db = new sqlite3.Database('./db/wiulyfe.db');
+
+const User = {
+    create: (username, email, password, callback) => {
+        db.run(
+            `INSERT INTO users (username, email, password) VALUES (?, ?, ?)`,
+            [username, email, password],
+            callback
+        );
+    },
+    findByEmail: (email, callback) => {
+        db.get(`SELECT * FROM users WHERE email = ?`, [email], callback);
+    },
+    findById: (id, callback) => {
+        db.get(`SELECT * FROM users WHERE id = ?`, [id], callback);
+    }
+};
+
+module.exports = User;

@@ -1,0 +1,18 @@
+const sqlite3 = require('sqlite3').verbose();
+const db = new sqlite3.Database('./db/wiulyfe.db');
+
+const Course = {
+    create: (userId, title, instructor, credits, grade, days, time, callback) => {
+        db.run(
+            `INSERT INTO courses (userId, title, instructor, credits, grade, schedule_days, schedule_time) 
+             VALUES (?, ?, ?, ?, ?, ?, ?)`,
+            [userId, title, instructor, credits, grade, days, time],
+            callback
+        );
+    },
+    getByUserId: (userId, callback) => {
+        db.all(`SELECT * FROM courses WHERE userId = ?`, [userId], callback);
+    }
+};
+
+module.exports = Course;
