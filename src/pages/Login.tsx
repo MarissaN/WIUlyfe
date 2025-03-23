@@ -1,30 +1,44 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import {
+  Dialog,
+  DialogTrigger,
+  DialogContent,
+  DialogTitle,
+} from "@radix-ui/react-dialog";
 
 const Login = () => {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [forgotEmail, setForgotEmail] = useState("");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Logging in with", email, password);
 
     if (!email || !password) {
       setError("Please enter both email and password.");
       return;
     }
-    console.log("Logging in with", email, password);
+
     if (!email.endsWith("@wiu.edu")) {
       setError("Only WIU email addresses are allowed.");
-      console.error("Invalid email:", email);
       return;
     }
 
     setError(""); // Clear error if valid
     alert("Login successful!"); // Replace with actual login logic
     navigate("/home");
+  };
+
+  const handleForgotPassword = async () => {
+    if (!forgotEmail.endsWith("@wiu.edu")) {
+      alert("Only WIU email addresses are allowed.");
+      return;
+    }
+    console.log("Sending password reset email to:", forgotEmail);
+    alert("If this email is registered, you will receive a reset link.");
   };
 
   return (
@@ -66,6 +80,31 @@ const Login = () => {
             Sign up
           </a>
         </p>
+
+        {/* Forgot Password Modal */}
+        <Dialog>
+          <DialogTrigger className="text-blue-500 mt-2 underline block text-center">
+            Forgot Password?
+          </DialogTrigger>
+          <DialogContent className="bg-white p-6 rounded-lg shadow-lg max-w-sm">
+            <DialogTitle className="text-lg font-bold">
+              Reset Password
+            </DialogTitle>
+            <input
+              type="email"
+              placeholder="Enter your WIU email"
+              value={forgotEmail}
+              onChange={(e) => setForgotEmail(e.target.value)}
+              className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 mt-3"
+            />
+            <button
+              onClick={handleForgotPassword}
+              className="w-full bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600 mt-3"
+            >
+              Submit
+            </button>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
