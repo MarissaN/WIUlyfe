@@ -1,68 +1,79 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
-import * as AlertDialog from "@radix-ui/react-alert-dialog";
-import { MoreVertical } from "lucide-react";
+import axios from "axios";
+import { Pie } from "react-chartjs-2";
+import { Chart as ChartJS, ArcElement, Tooltip, Legend } from "chart.js";
+
+ChartJS.register(ArcElement, Tooltip, Legend);
+
+interface Course {
+  id: number;
+  name: string;
+  semester: string;
+  grade: string;
+  userId: number;
+}
 
 const Home = () => {
   const navigate = useNavigate();
-  const [showDialog, setShowDialog] = useState(false);
+  const [registered, setRegistered] = useState<Course[]>([]);
 
-  const handleLogout = () => {
-    setShowDialog(false); // Close dialog
-    alert("Logged out successfully!"); // Show logout message
-    navigate("/"); // Redirect to login page
+  const email = "student1@wiu.edu";
+
+  useEffect(() => {
+    axios
+      .get(`http://localhost:5050/courses/${email}`)
+      .then((res) => setRegistered(res.data))
+      .catch((err) => console.error("Error fetching courses", err));
+  }, []);
+
+  const semesterCounts = registered.reduce(
+    (acc: Record<string, number>, course) => {
+      acc[course.semester] = (acc[course.semester] || 0) + 1;
+      return acc;
+    },
+    {}
+  );
+
+  const data = {
+    labels: Object.keys(semesterCounts),
+    datasets: [
+      {
+        label: "Subjects Registered",
+        data: Object.values(semesterCounts),
+        backgroundColor: [
+          "#FF6384",
+          "#36A2EB",
+          "#FFCE56",
+          "#8B5CF6",
+          "#34D399",
+        ],
+      },
+    ],
   };
 
   return (
-    <div className="flex flex-col items-center justify-center h-screen bg-gray-100 relative">
-      {/* Three-dot Menu in the top-right corner */}
-      <div className="absolute top-4 right-4">
-        <DropdownMenu.Root>
-          <DropdownMenu.Trigger className="p-2 rounded-full hover:bg-gray-200">
-            <MoreVertical size={24} />
-          </DropdownMenu.Trigger>
-          <DropdownMenu.Content className="bg-white shadow-lg rounded-lg p-2">
-            <DropdownMenu.Item className="p-2 hover:bg-gray-100 cursor-pointer">
-              Settings
-            </DropdownMenu.Item>
-            <DropdownMenu.Item className="p-2 hover:bg-gray-100 cursor-pointer">
-              Help
-            </DropdownMenu.Item>
-            <DropdownMenu.Item
-              className="p-2 hover:bg-red-100 cursor-pointer text-red-500"
-              onClick={() => setShowDialog(true)}
-            >
-              Logout
-            </DropdownMenu.Item>
-          </DropdownMenu.Content>
-        </DropdownMenu.Root>
-      </div>
-
+    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 p-6">
       <h1 className="text-3xl font-bold mb-6">Welcome to Home Page</h1>
 
-      {/* Logout Confirmation Dialog */}
-      <AlertDialog.Root open={showDialog} onOpenChange={setShowDialog}>
-        <AlertDialog.Portal>
-          <AlertDialog.Overlay className="fixed inset-0 bg-black bg-opacity-30" />
-          <AlertDialog.Content className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white p-6 rounded-lg shadow-lg w-80">
-            <AlertDialog.Title className="text-lg font-bold">
-              Are you sure you want to log out?
-            </AlertDialog.Title>
-            <div className="flex justify-end gap-4 mt-4">
-              <AlertDialog.Cancel className="px-4 py-2 bg-gray-300 rounded-lg cursor-pointer hover:bg-gray-400">
-                No
-              </AlertDialog.Cancel>
-              <AlertDialog.Action
-                onClick={handleLogout}
-                className="px-4 py-2 bg-red-500 text-white rounded-lg cursor-pointer hover:bg-red-600"
-              >
-                Yes, Logout
-              </AlertDialog.Action>
-            </div>
-          </AlertDialog.Content>
-        </AlertDialog.Portal>
-      </AlertDialog.Root>
+      {/* Course Tracker Dashboard */}
+      <div className="bg-white shadow-lg rounded-lg p-6 w-full max-w-xl mb-8">
+        <h2 className="text-2xl font-semibold mb-4 text-center">
+          📊 Course Tracker Dashboard
+        </h2>
+        {registered.length === 0 ? (
+          <p>No registered courses yet.</p>
+        ) : (
+          <Pie data={data} />
+        )}
+      </div>
+
+      <button
+        onClick={() => navigate("/course-tracker")}
+        className="mt-4 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+      >
+        Go to Course Tracker
+      </button>
     </div>
   );
 };

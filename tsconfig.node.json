@@ -1,25 +1,24 @@
 {
-    "compilerOptions": {
-      "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.node.tsbuildinfo",
-      "target": "ES2022",
-      "lib": ["ES2023"],
-      "module": "ESNext",
-      "skipLibCheck": true,
-  
-      /* Bundler mode */
-      "moduleResolution": "bundler",
-      "allowImportingTsExtensions": true,
-      "isolatedModules": true,
-      "moduleDetection": "force",
-      "noEmit": true,
-  
-      /* Linting */
-      "strict": true,
-      "noUnusedLocals": true,
-      "noUnusedParameters": true,
-      "noFallthroughCasesInSwitch": true,
-      "noUncheckedSideEffectImports": true
-    },
-    "include": ["vite.config.ts"]
-  }
-  
+  "compilerOptions": {
+    "composite": true, // ✅ Required for project references
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.node.tsbuildinfo",
+    "target": "ES2022",
+    "lib": ["ES2023"],
+    "module": "ESNext",
+    "skipLibCheck": true,
+
+    // ✅ Use 'node' for normal resolution here instead of bundler
+    "moduleResolution": "node",
+
+    // ❌ Removed allowImportingTsExtensions (only valid with bundler + noEmit)
+    // ✅ Removed isolatedModules & moduleDetection (used in Vite frontend builds)
+    "noEmit": false, // ✅ Must allow emit for project references
+
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedSideEffectImports": true
+  },
+  "include": ["vite.config.ts"]
+}
