@@ -16,18 +16,25 @@ const Sidebar = () => {
 
   return (
     <div className="flex">
-      {/* Toggle Button */}
-      <button
-        className="p-3 m-2 fixed top-2 left-2 z-50 bg-gray-200 rounded hover:bg-gray-300"
-        onClick={() => setOpen(!open)}
-      >
-        {open ? <X size={20} /> : <Menu size={20} />}
-      </button>
-
       {/* Sidebar */}
       {open && (
         <div className="w-64 bg-gray-100 h-screen p-4 pt-12 shadow-md fixed top-0 left-0 z-40">
-          <h2 className="text-xl font-bold mb-6">📘 Wiulyfe</h2>
+          {/* Close Button on the Right */}
+          <button
+            className="absolute top-4 right-6 z-50 p-2 text-gray-700 hover:text-gray-900"
+            onClick={() => setOpen(false)}
+          >
+            <X size={24} />
+          </button>
+
+          {/* Logo */}
+          <div className="flex items-center mb-6">
+            {/* Corrected path to the image in the public folder */}
+            <img src="/images/WIUlyfe.png" className="h-8 mr-2" />
+            <h2 className="text-xl font-bold">WIUlyfe</h2>
+          </div>
+
+          {/* Navigation Links */}
           <nav className="space-y-3">
             {navItems.map((item) => (
               <Link
@@ -46,7 +53,7 @@ const Sidebar = () => {
         </div>
       )}
 
-      {/* Push content if sidebar open */}
+      {/* Main Content */}
       <div className={`${open ? "ml-64" : "ml-0"} transition-all w-full`}>
         {/* children or routed page will be rendered here via AuthenticatedLayout */}
       </div>

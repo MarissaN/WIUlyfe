@@ -6,6 +6,7 @@ import {
   DialogContent,
   DialogTitle,
 } from "@radix-ui/react-dialog";
+import api from "../api/api";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -14,7 +15,7 @@ const Login = () => {
   const [error, setError] = useState("");
   const [forgotEmail, setForgotEmail] = useState("");
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!email || !password) {
@@ -27,9 +28,17 @@ const Login = () => {
       return;
     }
 
-    setError(""); // Clear error if valid
-    alert("Login successful!"); // Replace with actual login logic
-    navigate("/home");
+    try {
+      const res = await api.post("/login", { email, password });
+      localStorage.setItem("token", res.data.token);
+      localStorage.setItem("email", res.data.user.email);
+
+      setError("");
+      navigate("/home");
+    } catch (err: any) {
+      console.error("Login error:", err);
+      setError(err.error || "Login failed");
+    }
   };
 
   const handleForgotPassword = async () => {

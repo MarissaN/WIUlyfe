@@ -24,7 +24,6 @@ const AuthenticatedLayout = () => {
       <Sidebar />
 
       <div className="flex-1 bg-white min-h-screen p-4 relative">
-        {/* Profile Dropdown in Top-Right */}
         <div className="absolute top-4 right-6 z-50">
           <DropdownMenu.Root>
             <DropdownMenu.Trigger asChild>
@@ -36,12 +35,6 @@ const AuthenticatedLayout = () => {
               </button>
             </DropdownMenu.Trigger>
             <DropdownMenu.Content className="bg-white shadow-lg rounded-lg p-2 w-40">
-              <DropdownMenu.Item className="p-2 hover:bg-gray-100 cursor-pointer">
-                Settings
-              </DropdownMenu.Item>
-              <DropdownMenu.Item className="p-2 hover:bg-gray-100 cursor-pointer">
-                Help
-              </DropdownMenu.Item>
               <DropdownMenu.Item
                 className="p-2 hover:bg-red-100 text-red-600 cursor-pointer"
                 onClick={() => setShowLogoutDialog(true)}

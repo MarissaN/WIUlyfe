@@ -1,299 +1,328 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
+import { useNavigate } from "react-router-dom";
+import api from "../api/api";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
-interface Course {
+interface Subject {
   id: number;
   name: string;
-  semester: string;
-  grade: string;
-  userId: number;
-  credits?: number;
-  instructor?: string;
+  description: string;
+  credits: number;
+  instructor: string;
+  videoUrl: string;
+  grade?: string;
 }
 
-const allCourses = [
-  {
-    name: "Artificial Intelligence",
-    description: "Study of intelligent agents and ML algorithms.",
-    videoUrl: "https://www.youtube.com/watch?v=ad79nYk2keg",
-    credits: 3,
-    instructor: "Dr. Alan Turing",
-  },
-  {
-    name: "Software Engineering",
-    description: "Applying engineering principles to software.",
-    videoUrl: "https://www.youtube.com/watch?v=2naWCkCJx_E",
-    credits: 4,
-    instructor: "Prof. Ada Lovelace",
-  },
-  {
-    name: "Data Warehouse",
-    description: "Warehousing data and analytical techniques.",
-    videoUrl: "https://www.youtube.com/watch?v=2naWCkCJx_E",
-    credits: 4,
-    instructor: "Prof. Ada Lovelace",
-  },
-  {
-    name: "Operating Systems",
-    description: "Managing hardware and software resources.",
-    videoUrl: "https://www.youtube.com/watch?v=ZjKzd7wlNdU",
-    credits: 4,
-    instructor: "Dr. Linus Torvalds",
-  },
-];
-
-const getCurrentSemester = () => {
-  const today = new Date();
-  const year = today.getFullYear();
-  const month = today.getMonth() + 1;
-  if (month <= 5) return `Spring ${year}`;
-  if (month <= 8) return `Summer ${year}`;
-  return `Fall ${year}`;
-};
+const MAX_CREDITS = 33;
 
 const CourseTracker = () => {
-  const email = "student1@wiu.edu";
-  const [registered, setRegistered] = useState<Course[]>([]);
-  const [selectedCourse, setSelectedCourse] = useState<any>(null);
-  const [semester, setSemester] = useState(getCurrentSemester());
-  const [error, setError] = useState("");
-  const [activities, setActivities] = useState<string[]>([]);
-  const [showAdvanced, setShowAdvanced] = useState(false);
+  const navigate = useNavigate();
+  const [subjects, setSubjects] = useState<Subject[]>([]); // Storing subjects for the available courses
+  const [semester, setSemester] = useState<string>("Spring 2025");
+  const [selectedSubject, setSelectedSubject] = useState<Subject | null>(null); // Subject for modal
+  const [registered, setRegistered] = useState<Subject[]>([]); // Registered subjects (current semester)
+  const [activities, setActivities] = useState<string[]>([]); // Tracking activities
+  const [showAdvanced, setShowAdvanced] = useState(false); // Toggle for advanced view
+  const [completed, setCompleted] = useState<Subject[]>([]); // Completed subjects (Fall 2024)
 
   useEffect(() => {
-    axios
-      .get(`http://localhost:5050/courses/${email}`)
-      .then((res) => setRegistered(res.data))
-      .catch((err) => console.error("Error fetching courses", err));
-  }, []);
+    const fetchUserCourse = async () => {
+      const email = localStorage.getItem("email");
+      if (!email) {
+        console.error("No email found. Redirecting...");
+        navigate("/login");
+        return;
+      }
 
-  const isPastSemester = (sem: string) => {
-    const [season, yearStr] = sem.split(" ");
-    const year = parseInt(yearStr, 10);
-    const today = new Date();
-    const semEnd =
-      season === "Spring"
-        ? new Date(year, 4, 31)
-        : season === "Summer"
-        ? new Date(year, 7, 31)
-        : new Date(year, 11, 31);
-    return today > semEnd;
-  };
+      try {
+        const res = await api.get(`/courses/${email}`);
+        setSubjects(res.data); // Fetching subjects of the registered course
 
-  const currentSemester = getCurrentSemester();
-  const isCurrent = semester === currentSemester;
-  const completedCourses = registered.filter(
-    (c) => isPastSemester(c.semester) && c.semester === semester
+        // Adding subjects for Fall 2024 (Completed Subjects)
+        if (semester === "Fall 2024") {
+          const dummySubjects: Subject[] = [
+            {
+              id: 1,
+              name: "CS101 - Introduction to Computer Science",
+              description:
+                "A foundational course covering the basics of computer science.",
+              credits: 3,
+              instructor: "Dr. John Doe",
+              videoUrl: "https://www.youtube.com/embed/dQw4w9WgXcQ",
+              grade: "A",
+            },
+            {
+              id: 2,
+              name: "CS201 - Data Structures and Algorithms",
+              description:
+                "Learn about data structures and algorithms in computer science.",
+              credits: 4,
+              instructor: "Dr. Jane Smith",
+              videoUrl: "https://www.youtube.com/embed/dQw4w9WgXcQ",
+              grade: "B",
+            },
+            {
+              id: 3,
+              name: "CS301 - Operating Systems",
+              description:
+                "Introduction to the basics of operating systems and their functions.",
+              credits: 3,
+              instructor: "Dr. Sarah Lee",
+              videoUrl: "https://www.youtube.com/embed/dQw4w9WgXcQ",
+              grade: "A",
+            },
+          ];
+          setCompleted(dummySubjects);
+        }
+
+        const storedRegistered = localStorage.getItem(
+          "spring2025RegisteredSubjects"
+        );
+        if (storedRegistered) {
+          setRegistered(JSON.parse(storedRegistered));
+        }
+      } catch (err) {
+        console.error("Error fetching course subjects", err);
+      }
+    };
+
+    fetchUserCourse();
+  }, [navigate, semester]);
+
+  // Calculate the total credits for registered subjects
+  const totalCredits = registered.reduce(
+    (sum, subject) => sum + subject.credits,
+    0
   );
-  const currentCourses = registered.filter((c) => c.semester === semester);
-  const previouslyCompletedNames = registered
-    .filter((c) => isPastSemester(c.semester))
-    .map((c) => c.name);
 
-  const available = allCourses.filter(
-    (course) => !registered.some((c) => c.name === course.name)
-  );
+  const handleAdd = async (subject: Subject) => {
+    const token = localStorage.getItem("token");
+    const email = localStorage.getItem("email");
 
-  const handleAdd = async (course: (typeof allCourses)[0]) => {
-    if (isPastSemester(semester)) {
-      setError("❌ Cannot register courses for past semesters.");
+    if (!email || !token) {
+      navigate("/login");
+      return;
+    }
+
+    if (totalCredits + subject.credits > MAX_CREDITS) {
+      toast.error("🚫 Credit limit exceeded (Max: 33)");
       return;
     }
 
     try {
-      const res = await axios.post(`http://localhost:5050/register-course`, {
+      // Register course and update the states
+      const res = await api.post(`/register-course`, {
         email,
-        name: course.name,
+        name: subject.name,
         semester,
         grade: "",
-        credits: course.credits,
-        instructor: course.instructor,
       });
-      setRegistered((prev) => [...prev, res.data]);
+      setRegistered((prev) => [
+        ...prev,
+        {
+          id: subject.id,
+          name: subject.name,
+          description: subject.description,
+          credits: subject.credits,
+          instructor: subject.instructor,
+          videoUrl: subject.videoUrl,
+        },
+      ]); // Add subject to registered
+      setSubjects((prev) => prev.filter((s) => s.id !== subject.id)); // Remove from available subjects
       setActivities((prev) => [
-        `✅ Registered for ${course.name} (${semester})`,
+        `✅ Registered for ${subject.name} (${semester})`,
         ...prev,
       ]);
-      setError("");
+      toast.success(`Registered for ${subject.name}`);
+
+      // Save updated registered subjects to localStorage
+      localStorage.setItem(
+        "spring2025RegisteredSubjects",
+        JSON.stringify([
+          ...registered,
+          {
+            id: subject.id,
+            name: subject.name,
+            description: subject.description,
+            credits: subject.credits,
+            instructor: subject.instructor,
+            videoUrl: subject.videoUrl,
+          },
+        ])
+      );
     } catch (err) {
-      console.error("Error adding course", err);
+      console.error("Error adding subject", err);
+      toast.error("Failed to register subject.");
     }
   };
 
-  const handleDelete = async (id: number, name: string) => {
-    try {
-      await axios.delete(`http://localhost:5050/courses/${id}`);
-      setRegistered((prev) => prev.filter((c) => c.id !== id));
-      setActivities((prev) => [`❌ Removed ${name} from ${semester}`, ...prev]);
-    } catch (err) {
-      console.error("Error deleting course", err);
-    }
+  const handleView = (subject: Subject) => {
+    setSelectedSubject(subject);
+  };
+
+  const handleSemesterChange = (
+    event: React.ChangeEvent<HTMLSelectElement>
+  ) => {
+    setSemester(event.target.value);
+  };
+
+  // Toggle view between basic and advanced
+  const toggleAdvancedView = () => {
+    setShowAdvanced((prev) => !prev);
   };
 
   return (
-    <div className="flex">
-      <div className="flex-1 p-6">
-        <h2 className="text-xl font-bold mb-4">📚 Course Tracker</h2>
+    <div className="p-6">
+      <h2 className="text-2xl font-bold mb-4">📚 Course Tracker</h2>
 
-        <label className="block mb-2 font-medium">Select Semester:</label>
+      {/* Semester Dropdown */}
+      <div className="mb-4">
+        <label className="font-medium">Choose Semester: </label>
         <select
           value={semester}
-          onChange={(e) => setSemester(e.target.value)}
-          className="border px-3 py-2 rounded mb-4"
+          onChange={handleSemesterChange}
+          className="border px-3 py-2 rounded"
         >
-          {[
-            getCurrentSemester(),
-            "Spring 2024",
-            "Fall 2024",
-            "Spring 2025",
-            "Fall 2025",
-          ]
-            .filter((v, i, arr) => arr.indexOf(v) === i)
-            .map((s) => (
-              <option key={s} value={s}>
-                {s}
-              </option>
-            ))}
+          <option value="Spring 2025">Spring 2025</option>
+          <option value="Fall 2024">Fall 2024</option>{" "}
+          {/* Filtered options for Spring 2025 and Fall 2024 */}
         </select>
+      </div>
 
-        {error && <p className="text-red-500 mb-4">{error}</p>}
+      {/* Toggle for Advanced View */}
+      {semester === "Fall 2024" && (
+        <div className="mb-4 flex items-center">
+          <label className="font-medium">Advanced View: </label>
+          <input
+            type="checkbox"
+            checked={showAdvanced}
+            onChange={toggleAdvancedView}
+            className="ml-2"
+          />
+        </div>
+      )}
 
-        {isCurrent && (
-          <>
-            {/* Available Courses */}
-            <h3 className="text-lg font-semibold mb-2">Available Subjects</h3>
-            <table className="w-full border mb-6">
-              <thead className="bg-gray-100">
-                <tr>
-                  <th className="p-2 border">Course</th>
-                  <th className="p-2 border">Info</th>
-                  <th className="p-2 border">Add</th>
+      {/* Completed Subjects Table for Fall 2024 */}
+      {semester === "Fall 2024" && (
+        <div className="mb-6">
+          <h3 className="font-semibold text-lg mb-2">Completed Subjects</h3>
+          <table className="w-full table-auto border text-sm">
+            <thead className="bg-gray-100">
+              <tr>
+                <th className="p-2 border">Subject Name</th>
+                <th className="p-2 border">Instructor</th>
+                <th className="p-2 border">Credits</th>
+                {showAdvanced && <th className="p-2 border">Grade</th>}{" "}
+                {/* Show Grade in Advanced View */}
+              </tr>
+            </thead>
+            <tbody>
+              {completed.map((subject) => (
+                <tr key={subject.id}>
+                  <td className="p-2 border">{subject.name}</td>
+                  <td className="p-2 border">{subject.instructor}</td>
+                  <td className="p-2 border">{subject.credits}</td>
+                  {showAdvanced && (
+                    <td className="p-2 border">{subject.grade}</td>
+                  )}{" "}
+                  {/* Show grade in advanced view */}
                 </tr>
-              </thead>
-              <tbody>
-                {available.map((course) => (
-                  <tr key={course.name}>
-                    <td className="p-2 border">{course.name}</td>
-                    <td className="p-2 border text-center">
-                      <button
-                        className="text-blue-600 underline text-sm"
-                        onClick={() => setSelectedCourse(course)}
-                      >
-                        View
-                      </button>
-                    </td>
-                    <td className="p-2 border text-center">
-                      <button
-                        onClick={() => handleAdd(course)}
-                        className="bg-green-500 text-white px-3 py-1 rounded text-sm"
-                      >
-                        Add
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
 
-            {/* Registered Courses */}
-            <h3 className="text-lg font-semibold mb-2">
-              Registered Courses for {semester}:
-            </h3>
-            {currentCourses.length === 0 ? (
-              <p>No courses registered.</p>
-            ) : (
-              <ul className="space-y-2 mb-8">
-                {currentCourses.map((course) => (
-                  <li
-                    key={course.id}
-                    className="border p-3 rounded flex justify-between"
-                  >
-                    <div>
-                      <strong>{course.name}</strong>
-                    </div>
+      {/* Show Available Subjects Table only for Spring 2025 */}
+      {semester === "Spring 2025" && (
+        <div className="mb-6">
+          <h3 className="font-semibold text-lg mb-2">Available Subjects</h3>
+          <table className="w-full table-auto border text-sm">
+            <thead className="bg-gray-100">
+              <tr>
+                <th className="p-2 border">Subject Name</th>
+                <th className="p-2 border">Instructor</th>
+                <th className="p-2 border">Credits</th>
+                <th className="p-2 border">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {subjects.map((subject) => (
+                <tr key={subject.id}>
+                  <td className="p-2 border">{subject.name}</td>
+                  <td className="p-2 border">{subject.instructor}</td>
+                  <td className="p-2 border">{subject.credits}</td>
+                  <td className="p-2 border space-x-2">
                     <button
-                      onClick={() => handleDelete(course.id, course.name)}
-                      className="bg-red-500 text-white px-3 py-1 rounded text-sm"
+                      onClick={() => handleAdd(subject)}
+                      className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
                     >
-                      Remove
+                      Add
                     </button>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </>
-        )}
+                    <button
+                      onClick={() => handleView(subject)}
+                      className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
+                    >
+                      View
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
 
-        {!isCurrent && (
-          <>
-            <div className="flex justify-between items-center mb-2">
-              <h3 className="text-lg font-semibold">
-                Completed Courses for {semester}
-              </h3>
-              <div className="flex items-center gap-2">
-                <span className="text-sm">
-                  {showAdvanced ? "Advanced View" : "Basic View"}
-                </span>
-                <input
-                  type="checkbox"
-                  checked={showAdvanced}
-                  onChange={() => setShowAdvanced(!showAdvanced)}
-                  className="w-5 h-5"
-                />
-              </div>
-            </div>
-            {completedCourses.length === 0 ? (
-              <p>No courses completed in this semester.</p>
-            ) : (
-              <ul className="space-y-2 mb-8">
-                {completedCourses.map((course) => (
-                  <li
-                    key={course.id}
-                    className="border p-3 rounded flex justify-between"
-                  >
-                    <div>
-                      <strong>{course.name}</strong>{" "}
-                      {showAdvanced && `(Grade: ${course.grade || "N/A"})`}
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </>
-        )}
-      </div>
+      {/* Registered Subjects Table for Spring 2025 */}
+      {semester === "Spring 2025" && (
+        <div className="mb-6">
+          <h3 className="font-semibold text-lg mb-2">Registered Subjects</h3>
+          <table className="w-full table-auto border text-sm">
+            <thead className="bg-gray-100">
+              <tr>
+                <th className="p-2 border">Subject Name</th>
+                <th className="p-2 border">Instructor</th>
+                <th className="p-2 border">Credits</th>
+                {/* Action column for Spring 2025 */}
+              </tr>
+            </thead>
+            <tbody>
+              {registered.map((subject) => (
+                <tr key={subject.id}>
+                  <td className="p-2 border">{subject.name}</td>
+                  <td className="p-2 border">{subject.instructor}</td>
+                  <td className="p-2 border">{subject.credits}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
 
-      {/* Sidebar Activities */}
-      <div className="w-80 bg-gray-100 border-l p-4 overflow-y-auto max-h-screen sticky top-0">
-        <h3 className="text-lg font-bold mb-2">Recent Activities</h3>
-        <ul className="text-sm text-gray-700 space-y-2">
-          {activities.length === 0 ? (
-            <li>No recent actions yet.</li>
-          ) : (
-            activities.map((act, i) => <li key={i}>{act}</li>)
-          )}
-        </ul>
-      </div>
-
-      {/* Course Modal */}
-      {selectedCourse && (
+      {/* Modal for Subject Details */}
+      {selectedSubject && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white p-6 rounded shadow-lg max-w-lg w-full relative">
-            <h3 className="text-xl font-bold mb-2">{selectedCourse.name}</h3>
-            <p className="mb-2">{selectedCourse.description}</p>
+            <h3 className="text-xl font-bold mb-2">{selectedSubject.name}</h3>
+            <p className="mb-2">{selectedSubject.description}</p>
             <p className="text-sm mb-2">
-              Instructor: {selectedCourse.instructor}
+              Instructor: {selectedSubject.instructor}
             </p>
-            <p className="text-sm mb-4">Credits: {selectedCourse.credits}</p>
-            <iframe
-              className="w-full h-64"
-              src={selectedCourse.videoUrl.replace("watch?v=", "embed/")}
-              title={selectedCourse.name}
-              allowFullScreen
-            ></iframe>
+            <p className="text-sm mb-4">Credits: {selectedSubject.credits}</p>
+            {selectedSubject.videoUrl ? (
+              <iframe
+                className="w-full h-64"
+                src={selectedSubject.videoUrl.replace("watch?v=", "embed/")}
+                title={selectedSubject.name}
+                allowFullScreen
+              ></iframe>
+            ) : (
+              <p>No video available</p>
+            )}
             <div className="text-right mt-4">
               <button
-                onClick={() => setSelectedCourse(null)}
+                onClick={() => setSelectedSubject(null)}
                 className="bg-gray-300 px-4 py-1 rounded"
               >
                 Close
@@ -302,6 +331,8 @@ const CourseTracker = () => {
           </div>
         </div>
       )}
+
+      <ToastContainer />
     </div>
   );
 };

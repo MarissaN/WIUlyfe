@@ -1,13 +1,29 @@
 import express from "express";
 import cors from "cors";
+import authRoutes from "./routes/authRoutes";
 import courseRoutes from "./routes/courseRoutes";
-import { pool } from './db'; // make sure the path is correct based on your project structure
-
+import expenseRoutes from "./routes/expenseRoutes";
+import { pool } from "./db"; 
 
 const app = express();
 const PORT = 5050;
 
-// backend/src/index.ts or wherever your routes are
+// CORS middleware
+app.use(cors({
+  origin: 'http://localhost:5173',
+  methods: ['GET', 'POST', 'DELETE'],
+  credentials: true
+}));
+
+// Body parser
+app.use(express.json());
+
+// All routes
+app.use("/auth", authRoutes);     
+app.use("/courses", courseRoutes);
+app.use("/expense", expenseRoutes);
+
+// DELETE route
 app.delete('/courses/:id', async (req, res) => {
   const id = parseInt(req.params.id);
   try {
@@ -19,17 +35,6 @@ app.delete('/courses/:id', async (req, res) => {
   }
 });
 
-
-app.use(cors({
-  origin: 'http://localhost:5173',
-  methods: ['GET', 'POST', 'DELETE'],
-  credentials: true
-}));
-app.use(express.json()); // To read JSON body
-
-// Use our course routes
-app.use("/", courseRoutes);
-
 app.listen(PORT, () => {
-  console.log(`Server is running on http://localhost:${PORT}`);
+  console.log(`🚀 Server is running on http://localhost:${PORT}`);
 });

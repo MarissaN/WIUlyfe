@@ -23,12 +23,12 @@ const MentalHealthPopup = () => {
 
       timer = setTimeout(() => {
         setShowTip(false);
-      }, 2 * 60 * 1000); // hide after 2 mins
+      }, 2 * 60 * 1000);
     };
 
-    showRandomTip(); // show on first load
+    showRandomTip();
 
-    interval = setInterval(showRandomTip, 30 * 60 * 1000); // every 30 mins
+    interval = setInterval(showRandomTip, 30 * 1000); // every 30 seconds
 
     return () => {
       clearTimeout(timer);

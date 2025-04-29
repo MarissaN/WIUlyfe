@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { format, isToday, isThisWeek, isThisMonth, parseISO } from "date-fns";
+import { format, parseISO } from "date-fns";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import Papa from "papaparse";
+import api from "../api/api";
 
 interface Expense {
   id: number;
@@ -18,11 +19,9 @@ const FinancialTracker = () => {
   const [description, setDescription] = useState("");
   const [date, setDate] = useState("");
   const [category, setCategory] = useState("General");
-  const [filter, setFilter] = useState("all");
-  const [budget, setBudget] = useState<number | null>(null);
   const [editingId, setEditingId] = useState<number | null>(null);
 
-  const handleAddExpense = () => {
+  const handleAddExpense = async () => {
     if (!amount || !description || !date) return;
     const newExpense: Expense = {
       id: editingId ?? Date.now(),
@@ -45,6 +44,18 @@ const FinancialTracker = () => {
     setDescription("");
     setDate("");
     setCategory("General");
+
+    try {
+      const email = localStorage.getItem("email");
+      if (!email) {
+        console.error("No email found.");
+        return;
+      }
+
+      await api.post("/expense", { ...newExpense, email });
+    } catch (err) {
+      console.error("Error adding expense", err);
+    }
   };
 
   const handleDelete = (id: number) => {
@@ -59,24 +70,13 @@ const FinancialTracker = () => {
     setEditingId(exp.id);
   };
 
-  const filteredExpenses = expenses.filter((exp) => {
-    const expDate = parseISO(exp.date);
-    if (filter === "daily") return isToday(expDate);
-    if (filter === "weekly") return isThisWeek(expDate);
-    if (filter === "monthly") return isThisMonth(expDate);
-    return true;
-  });
-
-  const totalSpent = filteredExpenses.reduce((sum, exp) => sum + exp.amount, 0);
-  const isOverBudget = budget !== null && totalSpent > budget;
-
   const handleExportPDF = () => {
     const doc = new jsPDF();
     doc.text("Expenses Report", 14, 20);
     autoTable(doc, {
       startY: 30,
       head: [["Amount ($)", "Description", "Category", "Date"]],
-      body: filteredExpenses.map((exp) => [
+      body: expenses.map((exp) => [
         exp.amount.toFixed(2),
         exp.description,
         exp.category,
@@ -88,7 +88,7 @@ const FinancialTracker = () => {
 
   const handleExportCSV = () => {
     const csv = Papa.unparse(
-      filteredExpenses.map((exp) => ({
+      expenses.map((exp) => ({
         Amount: exp.amount,
         Description: exp.description,
         Category: exp.category,
@@ -107,7 +107,7 @@ const FinancialTracker = () => {
 
   return (
     <div className="p-6">
-      <h2 className="text-2xl font-bold mb-4">💰 Financial Tracker</h2>
+      <h2 className="text-2xl font-bold mb-4">💰 Financial Manager</h2>
 
       <div className="grid md:grid-cols-2 gap-4 mb-6">
         <input
@@ -152,31 +152,6 @@ const FinancialTracker = () => {
       </button>
 
       <div className="flex flex-wrap gap-4 items-center mb-4">
-        <div>
-          <label className="font-medium mr-2">Filter:</label>
-          <select
-            value={filter}
-            onChange={(e) => setFilter(e.target.value)}
-            className="border px-3 py-1 rounded"
-          >
-            <option value="all">All</option>
-            <option value="daily">Today</option>
-            <option value="weekly">This Week</option>
-            <option value="monthly">This Month</option>
-          </select>
-        </div>
-
-        <div>
-          <label className="font-medium mr-2">Set Budget:</label>
-          <input
-            type="number"
-            placeholder="Optional ($)"
-            value={budget !== null ? budget : ""}
-            onChange={(e) => setBudget(Number(e.target.value) || null)}
-            className="border px-3 py-1 rounded"
-          />
-        </div>
-
         <button
           onClick={handleExportPDF}
           className="bg-green-500 text-white px-3 py-1 rounded"
@@ -192,26 +167,12 @@ const FinancialTracker = () => {
         </button>
       </div>
 
-      {isOverBudget && (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-2 mb-4 rounded">
-          ⚠️ Warning: You have exceeded your budget of ${budget} by $
-          {(totalSpent - budget!).toFixed(2)}
-        </div>
-      )}
-
       <div className="mb-4 font-semibold text-gray-700">
-        Total Spent: ${totalSpent.toFixed(2)}
-        {budget !== null && (
-          <span className="ml-4">
-            Budget: ${budget.toFixed(2)}{" "}
-            {!isOverBudget && (
-              <span className="text-green-600 ml-2">✅ Within Budget</span>
-            )}
-          </span>
-        )}
+        Total Spent: $
+        {expenses.reduce((sum, exp) => sum + exp.amount, 0).toFixed(2)}
       </div>
 
-      {filteredExpenses.length === 0 ? (
+      {expenses.length === 0 ? (
         <p>No expenses found.</p>
       ) : (
         <table className="w-full border text-sm">
@@ -225,7 +186,7 @@ const FinancialTracker = () => {
             </tr>
           </thead>
           <tbody>
-            {filteredExpenses.map((exp) => (
+            {expenses.map((exp) => (
               <tr key={exp.id}>
                 <td className="p-2 border">${exp.amount.toFixed(2)}</td>
                 <td className="p-2 border">{exp.description}</td>

@@ -4,7 +4,9 @@ import Signup from "./pages/Signup";
 import Home from "./pages/Home";
 import CourseTracker from "./pages/CourseTracker";
 import FinancialTracker from "./pages/FinancialTracker";
+import HealthTracker from "./pages/HealthTracker";
 import AuthenticatedLayout from "./pages/AuthenticatedLayout";
+import CurriculumPlanner from "./pages/CurriculumPlanner";
 
 function App() {
   return (
@@ -19,6 +21,8 @@ function App() {
         <Route path="/home" element={<Home />} />
         <Route path="/course-tracker" element={<CourseTracker />} />
         <Route path="/financial-tracker" element={<FinancialTracker />} />
+        <Route path="/health-tracker" element={<HealthTracker />} />
+        <Route path="/curriculum-planner" element={<CurriculumPlanner />} />
       </Route>
     </Routes>
   );

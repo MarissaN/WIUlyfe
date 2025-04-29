@@ -1,8 +1,9 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import api from "../api/api";
 
 const Signup = () => {
-  const navigate = useNavigate(); // For redirection
+  const navigate = useNavigate();
 
   const [firstName, setFirstName] = useState("");
   const [middleName, setMiddleName] = useState("");
@@ -14,7 +15,6 @@ const Signup = () => {
   const [passwordStrength, setPasswordStrength] = useState("");
   const [accountCreated, setAccountCreated] = useState(false);
 
-  // Function to check password strength
   const checkPasswordStrength = (pwd: string) => {
     if (pwd.length < 6) return "Weak ❌";
     if (
@@ -27,32 +27,37 @@ const Signup = () => {
     return "Medium ⚠️";
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // First Name validation
     if (!firstName.trim()) {
       setError("First Name is required.");
       return;
     }
 
-    // Email validation
     if (!email.endsWith("@wiu.edu")) {
       setError("Only WIU email addresses are allowed.");
       return;
     }
 
-    // Password match validation
     if (password !== confirmPassword) {
       setError("Passwords do not match.");
       return;
     }
 
-    setError(""); // Clear error if valid
-    setAccountCreated(true);
+    try {
+      const res = await api.post("/register", { email, password });
 
-    // Redirect to login after 2 seconds
-    setTimeout(() => navigate("/login"), 2000);
+      if (res?.data?.message === "User registered") {
+        setAccountCreated(true);
+        setTimeout(() => navigate("/login"), 2000);
+      } else {
+        setError(res?.data?.error || "Registration failed.");
+      }
+    } catch (err: any) {
+      console.error(err);
+      setError(err?.error || "Something went wrong. Try again later.");
+    }
   };
 
   return (

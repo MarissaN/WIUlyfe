@@ -1,9 +1,9 @@
-/* ✅ Required Tailwind Directives */
+/* Required Tailwind Directives */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* ✅ Your Custom Styles AFTER Tailwind */
+/*  Custom Styles AFTER Tailwind */
 :root {
   font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
